@@ -12,20 +12,13 @@ import java.util.Date;
  * @author nsami
  *
  */
-
 public class ATM {
-	//alle fields worden hier gedefined
+	// alle fields worden hier gedefined
 	ATMScreen as;
-	ArrayList<InputDevice> menu;
-	ArrayList<InputDevice> buttonList;
-	ArrayList<InputDevice> withdrawOptions;
-	ArrayList<InputDevice> answerList;
-	ArrayList<Client> blackList;
 	Bank bank;
 	boolean check = false;
-
-	Client session;
-	Client temp;
+	boolean wrong = false;
+	boolean sessionClient = false;
 
 	DisplayText welcome;
 	DisplayText welcome2;
@@ -70,12 +63,6 @@ public class ATM {
 	public ATM(Bank bank) throws InterruptedException {
 		super();
 		this.bank = bank;
-		menu = new ArrayList<>();
-		answerList = new ArrayList<>();
-		buttonList = new ArrayList<>();
-		blackList = new ArrayList<>();
-		withdrawOptions = new ArrayList<>();
-
 		as = new ATMScreen();
 		this.textWelcome();
 		this.setDisplayText();
@@ -88,7 +75,6 @@ public class ATM {
 		}
 
 	}
-	
 
 	public void createFrame() {
 		f = new Frame("My ATM");
@@ -113,12 +99,23 @@ public class ATM {
 		return;
 	}
 
-	//hierbij worden de labels toegevoegd aan de container zodat er text kan worden getoond in de frame
+	// hierbij worden de labels toegevoegd aan de container zodat er text kan worden
+	// getoond in de frame
 	public void welcomeScreen() {
 		as.add(welcome);
 		as.add(welcome2);
 	}
 	
+	void options(String amount) {
+		int money = Integer.valueOf(amount);
+		int left = money % 50;
+		int fifties = (money - left)/50;
+		int tenies = money / 10;
+		left = left / 10;
+		System.out.println(fifties + left);
+		this.choiceReceipt( fifties + " * €50,- and " + left + " * €10,- [A]", tenies + " * €10,- [B]");
+	}
+
 	void message(String one, String two) {
 		as.clear();
 		this.welcomeScreen();
@@ -126,13 +123,15 @@ public class ATM {
 		welcome2.giveOutput(two);
 	}
 
-	//deze methode toont de welcome messages en wordt gebruikt als de user 3 keer een foute pin invoert en als tevens homescreen
+	// deze methode toont de welcome messages en wordt gebruikt als de user 3 keer
+	// een foute pin invoert en als tevens homescreen
 	public void redirected() {
 		this.welcome.giveOutput(message);
 		this.welcome2.giveOutput(message2);
 	}
 
-	//deze methode neemt de grootte van het scherm en bepaald waar de developer de label precies in het midden de label neerzet
+	// deze methode neemt de grootte van het scherm en bepaald waar de developer de
+	// label precies in het midden de label neerzet
 	public int centerLabel() {
 		screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		this.middle = screenSize.width / 2;
@@ -151,7 +150,7 @@ public class ATM {
 		welcome2.giveOutput(message2);
 	}
 
-	//hierin worden de meest gebruikte Strings geinitialiseerd	
+	// hierin worden de meest gebruikte Strings geinitialiseerd
 	public void setDisplayText() {
 		// error output when account does not exist
 		this.error = "The account does not exist!";
@@ -171,8 +170,8 @@ public class ATM {
 	public void errorScreen() {
 		this.welcome.giveOutput(this.error);
 		this.welcome2.giveOutput(this.error2);
-		//		System.out.println(this.error);
-		//		System.out.println(this.error2);
+		// System.out.println(this.error);
+		// System.out.println(this.error2);
 	}
 
 	// de methode zet de snelkeuze menu neer en toegevoegd aan een arraylist
@@ -180,14 +179,12 @@ public class ATM {
 		as.clear();
 		as.add(welcome);
 		as.add(welcome2);
-		welcome.giveOutput("Welcome " + session.getName());
+		welcome.giveOutput("Welcome to the Monopoly Bank!");
 		welcome2.giveOutput("Choose your action: ");
 		this.bCheck = new ScreenButton("Check [A]", new Point(middle, 300));
 		this.bWithdraw = new ScreenButton("Withdraw [B]", new Point(middle, 350));
 		this.bfast = new ScreenButton("Fast Choice [C]", new Point(middle, 400));
 		this.bexit = new ScreenButton("Exit [#]", new Point(middle, 450));
-		menu.add(bCheck);
-		menu.add(bWithdraw);
 		as.add(bCheck);
 		as.add(bWithdraw);
 		as.add(bfast);
@@ -195,11 +192,11 @@ public class ATM {
 	}
 
 	// deze methode laat de user toe zijn balans te bekijken
-	public void checkAccount() {
+	public void checkAccount(String iban, String pin) {
 		as.clear();
 		as.add(welcome);
 		as.add(welcome2);
-		int balance = session.getBalance(tempPin);
+		int balance = bank.getBalance(iban, pin);
 		welcome.giveOutput("Your balance is: ");
 		welcome2.giveOutput(String.valueOf(balance));
 		return;
@@ -231,6 +228,17 @@ public class ATM {
 
 	}
 
+	void fastScreen() {
+		this.message("Please make a choice", "");
+		this.take20 = new ScreenButton("20 [1]", new Point(middle, 250));
+		this.take50 = new ScreenButton("50 [2]", new Point(middle, 300));
+		this.take100 = new ScreenButton("100 [3]", new Point(middle, 350));
+
+		as.add(take100);
+		as.add(take50);
+		as.add(take20);
+	}
+
 	public void choiceReceipt(String top, String bottom) {
 		yes = new ScreenButton(top, new Point((middle), 300));
 		no = new ScreenButton(bottom, new Point((middle), 350));
@@ -242,8 +250,10 @@ public class ATM {
 	public void addScreenPad() {
 		welcome.giveOutput(pinMessage);
 		welcome2.giveOutput(keys);
+		this.choiceReceipt("CLEAR [*]", "EXIT [#]");
 
 	}
+
 	// display die wordt getoond als de userpin evenlang is als de pin die is
 	// ingevoerd
 	public void validatingPin() {
@@ -267,73 +277,76 @@ public class ATM {
 			if (get.length() > 1) {
 				char first = get.charAt(0);
 				read += first;
-				System.out.println(read);
+				//System.out.println(read);
 				return read;
 			} else if (get.length() == 1) {
 				read += get;
-				System.out.println(read);
+				//System.out.println(read);
 				return read;
 			}
 		}
 		return null;
 	}
-	
+
 	String card() {
 		String get = serial.getData();
 		String read = "";
 		if (get != null && get != "") {
-			if(get.length() > 10) {
-				read += get.substring(0, 13);
-//				System.out.println(read);
-				return read;
+			if (get.length() > 10) {
+				read += get.substring(0, 14);
+				// System.out.println(read);
+				return "SU38MYBK214506";
 			}
 		}
 		return null;
 	}
-	
+
 	void ownAmount() {
-		this.message("Please input amount thy wish", amount);
+		this.message("Please input amount thy wish", "€ " + amount);
 		this.choiceReceipt("Confirm [#]", "Back [*]");
 	}
 
 	public void doTransaction() throws InterruptedException {
+		System.out.println("This is just a test");
 		Serial.listenSerial();
 		this.welcomeScreen();
 		this.redirected();
-		
-//		this.bank.connect();
-//		this.bank.disconnect();
+
+		// this.bank.connect();
+		// this.bank.disconnect();
 		String card = "";
+		String sessionCard = null;
 		String account = "";
-		while (temp == null) {
+		while (sessionClient == false) {
 			card = this.card();
-			if(card != null) {
+			if (card != null) {
 				account = card.replace(" ", "");
-//				System.out.println("/" + account + "/");
-				temp = bank.get(account);
-				account = null;
-				card = null;
-				if(temp == null) {
+				// System.out.println("/" + account + "/");
+				sessionClient = bank.getIban(account);
+
+				if (!sessionClient) {
 					this.errorScreen();
 					Thread.sleep(1000);
 					this.redirected();
+				}else {
+					sessionCard = account;
+					break;
 				}
+				
+				if(bank.checkIbanBlocked(account)) {
+					this.message("The account is blocked", "Please contact the bank!");
+					Thread.sleep(500);
+					sessionClient = false;
+					return;
+				}
+				
+				account = null;
+				card = null;
 			}
 		}
-							
-		account = null;
-		card = null;
-		session = temp;
 
-		if (blackList.contains(session)) {
-			this.blocked();
-			System.out.println("Account is blocked, please contact the Bank.");
-			return;
-		}
-
-		int userPin = session.pinLength();// de lengte van de pin van de huidige sessie wordt opgevraagd en opgeslagen
-
-//		System.out.println("Please enter your pin: ");
+		int userPin = 4;
+		
 		String pin = null;
 		this.attempts = 0;
 		while (attempts != 3) {
@@ -342,9 +355,33 @@ public class ATM {
 			while (userPin != tempPinLength) {
 				pin = this.serialData();
 				if (pin != null && !pin.equals(" ") && !pin.equals("P") && !pin.equals(":")) {
+					
+					if(pin.equals("*")) {
+						System.out.println("I AM HERE!!");
+						if(!tempPin.isEmpty() && !tempPin.isBlank() && tempPin != null && tempPin.length() > 0) {
+							String cut = tempPin;
+							tempPin = cut.substring(0, tempPin.length() - 1);
+							cut = keys;
+							keys = cut.substring(0, keys.length() - 1);
+							System.out.println("stuff: " + tempPin);
+							System.out.println(tempPin.length() + " length");
+							pin = "";
+						}
+					}else if(pin.equals("#")) {
+						System.out.println("NOW HERE!!");
+						sessionClient = false;
+						tempPin = null;
+						this.message("Exiting", "...");
+						Thread.sleep(500);
+						f.dispose();
+						this.createFrame();
+						return;
+					}
+					
 					welcome2.giveOutput(keys);
+					System.out.println(pin);
 					tempPin += pin;
-					//					System.out.println(tempPin +"/");
+					System.out.println(tempPin);
 					tempPinLength = tempPin.length();
 					pin = null;
 				}
@@ -365,12 +402,15 @@ public class ATM {
 				}
 			}
 
-			this.validatingPin();// tonen deze scherm om de user te laten wachten
-			Thread.sleep(500);// wachten 0.5 seconden
-
-			if (session.checkPin(tempPin)) {// als de pin hetzelfde is
+			if (bank.checkPin(tempPin)) {// als de pin hetzelfde is
+				tempPinLength = 0;
+				keys = "";
+				this.validatingPin();// tonen deze scherm om de user te laten wachten
+				Thread.sleep(1000);
 				break;// zorgt ervoor dat er uit de while loop wordt gestapt
 			} else {
+				this.message("Incorrect Password", "Please try again");
+				Thread.sleep(750);
 				attempts += 1;// tellen 1 op bij attempts
 				this.tempPin = "";// resetten de tempPin
 				tempPinLength = 0;// resetten de temporary lengte
@@ -381,78 +421,97 @@ public class ATM {
 			}
 		}
 
-		if (attempts == 3) {// wanneer uit de while loop wordt gestapt wordt gekeken of de user werkelijk is
-			// ingelogd of teveel keren heeft he
-			blackList.add(session);
+		if (attempts == 3) {
+			bank.blackList(sessionCard);
 			this.blocked();
-			Thread.sleep(2000);
+			sessionCard = null;
+			sessionClient = false;
+			Thread.sleep(1000);
 			as.clear();
 			this.attempts = 0;
 			f.dispose();
 			this.createFrame();
 			return;
 		}
-		as.clear();
 		boolean endSession = false;// eindigen de sessie als de user heeft opgenomen
 
 		while (endSession == false) {
-			
+
 			as.clear();
 			this.menu();
-			while(action == null) {
+			while (action == null) {
 				action = this.serialData();
 			}
 
-			if(action != null) {
+			if (action != null) {
 
-				if(action.equals("A")) {
-					this.checkAccount();
+				if (action.equals("A")) {
+					this.checkAccount(sessionCard, tempPin);
 					Thread.sleep(1000);
 					action = null;
 					as.clear();
 					continue;
-				}else if(action.equals("B")) {
+				} else if (action.equals("B")) {
 					this.withdraw();
 					while (choice == null) {
 						choice = this.serialData();
 						if (choice != null) {
-							if(choice.equals("1")) {
+							if (choice.equals("1")) {
 								choice = "20";
-								check = session.withdraw(Integer.valueOf(20), this.tempPin);
-							}else if(choice.equals("2")) {
+								check = bank.withdraw(choice);
+								wrong = !check;
+							} else if (choice.equals("2")) {
 								choice = "50";
-								check = session.withdraw(Integer.valueOf(50), this.tempPin);
-							}else if(choice.equals("3")) {
+								check = bank.withdraw(choice);
+								wrong = !check;
+							} else if (choice.equals("3")) {
 								choice = "100";
-								check = session.withdraw(Integer.valueOf(100), this.tempPin);
-							}else if(choice.equals("4")) {
+								check = bank.withdraw(choice);
+								wrong = !check;
+							} else if (choice.equals("4")) {
 								choice = "200";
-								check = session.withdraw(Integer.valueOf(200), this.tempPin);
-							}else if(choice.equals("*")) {
+								check = bank.withdraw(choice);
+								wrong = !check;
+							} else if (choice.equals("*")) {
 								action = null;
 								choice = null;
 								as.clear();
 								break;
-							}else if(choice.equals("A")) {
+							}else if(choice.equals("#")) {
+								this.message("Exiting...", "");
+								endSession = true;
+								Thread.sleep(500);
+								continue;
+							}else if (choice.equals("A")) {
 								this.ownAmount();
 								String get = null;
-								while(get != "#") {
+								while (get != "#") {
 									get = serialData();
-									if(get != null) {
-										if(!get.equals("*") && !get.equals("#") && !get.equals("A") && !get.equals("B") && !get.equals("C") && !get.equals("D")) {
+									if (get != null) {
+										if (!get.equals("*") && !get.equals("#") && !get.equals("A") && !get.equals("B")
+												&& !get.equals("C") && !get.equals("D")) {
 											amount += get;
 											this.ownAmount();
-								//			System.out.println(amount);
-										}else if(get.equals("#")){
-									//		System.out.println("inside");
-											if(!amount.contains("#") && !amount.contains("null") && amount != "") {
-												System.out.println("/"+amount+"/");
+											// System.out.println(amount);
+										} else if (get.equals("#")) {
+											// System.out.println("inside");
+											if (!amount.contains("#") && !amount.contains("null") && amount != "" && amount != null && amount.endsWith("0")) {
+												System.out.println("/" + amount + "/");
 												choice = amount;
-												check = session.withdraw(Integer.valueOf(choice), this.tempPin);
+												check = bank.withdraw(choice);
+												if(!check) {
+													this.message("You don't have enough credit", "Please wait and try again");
+													Thread.sleep(500);
+													amount = "";
+													choice = null;
+													choice = "A";
+													this.ownAmount();
+													continue;
+												}
 												amount = "";
 												break;
-											}else {
-												this.message("Please input a valid amount", "You will be redirected");
+											} else {
+												this.message("Please input a valid amount", "Your amount has to end with a 0");
 												Thread.sleep(500);
 												amount = "";
 												choice = null;
@@ -460,7 +519,7 @@ public class ATM {
 												this.ownAmount();
 												continue;
 											}
-										}else if(get.equals("*")) {
+										} else if (get.equals("*")) {
 											choice = null;
 											amount = "";
 											this.withdraw();
@@ -468,37 +527,88 @@ public class ATM {
 										}
 									}
 								}
+							}else {
+								this.message("Chosen option is not optional", "Please choose again");
+								Thread.sleep(1000);
+								choice = null;
+								this.withdraw();
 							}
 						}
 					}
-				}else if(action.equals("C")) {
-//					System.out.println("Inside C");
+				} else if (action.equals("C")) {
+					// System.out.println("Inside C");
+					choice = "70";
+					check = bank.withdraw(choice);
 					as.clear();
-					this.welcomeScreen();
-					welcome2.giveOutput(" ");
-					welcome.giveOutput(" ");
-					welcome2.giveOutput("Fast choice, have a nice day!");
-					check = session.withdraw(70, this.tempPin);
-					System.out.println(attempts + " tries");
-					action = null;
-					session = null;
-					tempPin = "";
-					temp = null;
-					endSession = true;
+					if(check) {
+						this.welcomeScreen();
+						this.message("Withdrawing €" + choice , "Have a nice day!");
+						action = null;
+						tempPin = "";
+						sessionClient = false;
+						endSession = true;
+					}else {
+						this.message("Unable to get the money!", "Please contact the bank!");
+						endSession = true;
+						sessionClient = false;
+						action = null;
+						tempPin = "";
+					}
 					return;
-				}else if(action.equals("#")) {
+				} else if (action.equals("#")) {
 					welcome.giveOutput("");
 					welcome2.giveOutput("");
 					welcome.giveOutput("Exiting...");
 					endSession = true;
+					tempPin = null;
+					keys = "";
 					Thread.sleep(500);
 					continue;
+				}else {
+					action = null;
+					choice = null;
+					Thread.sleep(50);
+					this.menu();
+					continue;
+				}
+				
+				if(wrong) {
+					this.message("SOMETHING WENT WRONG", "PLEASE CONTACT THE BANK");
+					Thread.sleep(750);
+					this.as.clear();
+					this.withdraw();
+					choice = null;
+					wrong = false;
 				}
 
 				if (check == true) {
+					this.message("Please select preffered bill options ", "Tens or Fifties?");
+					this.options(choice);
+					boolean bill = false;
+					String answer = null;
+					while(!bill) {
+						while(answer == null) {
+							String check = null;
+							check = this.serialData();
+							if(check != null) {
+								answer = check;
+							}
+						}
+						
+						if(answer == "A") {
+							this.message("Redirecting...", "");
+							bill = true;
+							continue;
+						}else if(answer == "B") {
+							this.message("Redirecting...", "");
+							bill = true;
+							continue;
+						}
+						
+					}
 					this.message("Would you like a receipt", "");
 					this.choiceReceipt("Yes [A]", "No [Any other key]");
-					String answer = null;
+					answer = null;
 					while (answer == null) {
 						String receipt = null;
 						receipt = this.serialData();
@@ -508,6 +618,9 @@ public class ATM {
 					}
 
 					if (answer == "A") {
+						String last = sessionCard.substring(0, 10);
+						last += "XXXX";
+						this.serial.write(last);
 						this.createReceipt(choice);
 						welcome.giveOutput("Now dispensing $ " + choice);
 						welcome2.giveOutput("Please take your card and your cash!");
@@ -524,14 +637,15 @@ public class ATM {
 				}
 			}
 		}
-	action = null;
-	attempts = 0;
-	endSession = false;
-	session = null;
-	temp = null;
-	tempPin = null;
-	choice = null;
-	as.clear();
-	return;
-}
+		
+		sessionCard = null;
+		action = null;
+		attempts = 0;
+		endSession = false;
+		tempPin = null;
+		choice = null;
+		this.sessionClient = false;
+		as.clear();
+		return;
+	}
 }

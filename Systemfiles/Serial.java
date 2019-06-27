@@ -1,13 +1,16 @@
 package Systemfiles;
 
+import java.io.IOException;
+
 import com.fazecast.jSerialComm.*;
 
 public class Serial {
 	private static String data;
 	private static String serialData;
+	private static SerialPort comPort;
 
 	public static void listenSerial() {
-		SerialPort comPort = SerialPort.getCommPort("COM3");
+		 comPort = SerialPort.getCommPort("COM3");
 		
 		//set the baud rate to 9600 (same as the Arduino)
 		comPort.setBaudRate(500000);
@@ -38,8 +41,17 @@ public class Serial {
 
 	public String getData() {
 		data = serialData;
+//		System.out.println("printing from serial class: " + data);
 		return data;
 	}
 
-
+	public void write(String stuff) {
+		try {
+			comPort.getOutputStream().write(stuff.getBytes());
+			comPort.getOutputStream().flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }

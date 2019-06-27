@@ -1,5 +1,6 @@
 package Systemfiles;
 
+
 public class Client {
 //private fields zodat deze niet zomaar in andere classesn veranderd kunnen worden
 	private String name; // voor de naam van de user/client

@@ -1,59 +1,103 @@
 package Systemfiles;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class Bank {
 
-	java.util.Map<String, Client> accounts;
 	private Socket sock;
-	private InetAddress addr;
-	
-//er wordt een map gebruikt om alle users in te zetten zodat de users altijd te vinden zijn
+	private DataInputStream received;
+	private DataOutputStream send;
+
 	public Bank()	{
-		accounts = new java.util.HashMap<String, Client>();
-		this.updateDatabase("SU38MYBK21450", "Vladimir Putin", "0020", 20000000);
+		this.connect();
 	}
 	
-//eigen methode waarbij het aanroepen deze een nieuwe client initialiseerd, en kan dit volledig automatisch
-	public void updateDatabase(String account, String name, String pin, int balance)	{
-		this.accounts.put(account, new Client(name, pin, balance));
-	}
-
-	//de methode hier zorgt ervoor dat er door de hele hashmap gezocht of de opgegeven client wel bestaat
-	public Client get(String account)	{
+	public void blackList(String iban) {
 		try {
-			if(this.accounts.containsKey(account))	{
-				return this.accounts.get(account);
-			}else {
-				return (Client) null;
-			}
-		} catch (Exception e) {
-			return (Client) null;
+			send.writeUTF("blockCard");
+		} catch (IOException e) {
+			System.out.println("DEVINE INTERVENTION HAS PREVENTED THE BLOCKING OF THE CARD!!!");
 		}
-
 	}
 	
 	public boolean connect() {
 		try {
 			sock = new Socket("145.24.222.106", 8080);
-			addr = sock.getInetAddress();
-			System.out.println("Connected to " + addr);
-			return true;
-		}catch (java.io.IOException e) {
-			System.out.println("Connection failed");
-	        return false;
-	      }
-				
-	}
-	
-	public boolean disconnect() {
-		try {
-			sock.close();
+			System.out.println("CONNECTION SUCCESVOL! READY TO SEND AND RECEIVE DATA!");
+			received = new DataInputStream(sock.getInputStream());
+			send = new DataOutputStream(sock.getOutputStream());
+			return sock.isConnected();
+		} catch (UnknownHostException e) {
+			System.out.println("HOST COULD NOT BE RESOLVED! PLEASE TRY AGAIN!");
 			return false;
 		} catch (IOException e) {
-			return true;
+			System.out.println("AN UNEXPECTED ERROR HAPPENED! PLEASE TRY AGAIN");
+			return false;
+		}
+	}
+	
+
+	
+	public boolean checkIbanBlocked(String iban) {
+		try {
+			send.writeUTF("checkBlocked");
+			return received.readBoolean();
+		} catch (IOException e) {
+			System.out.println("PLEASE TRY AGAIN!");
+			return false;
+		}
+	}
+	
+	public boolean checkPin(String pin) {
+		try {
+			send.writeUTF("pin");
+			send.writeInt(Integer.valueOf(pin));
+			return received.readBoolean();
+		} catch (IOException e) {
+			System.out.println("THE GODS HAVE FORSAKEN YOU!!!!");
+			return false;
+		}
+	}
+	
+	public int getBalance(String iban, String pin) {
+		try {
+			send.writeUTF("balance");
+			send.writeUTF(iban);
+			send.writeInt(Integer.valueOf(pin));
+			received = new DataInputStream(sock.getInputStream());
+			return received.readInt();
+		} catch (IOException e) {
+			System.out.println("UNABLE TO GET BALANCE");
+			return Integer.MIN_VALUE;
+		}
+	}
+	
+	public boolean getIban(String iban) {
+		try {
+			send.writeUTF("iban");
+			send.writeUTF(iban);
+			return received.readBoolean();
+		} catch (IOException e) {
+			System.out.println("STREAM ERROR! PLEASE TRU AGAIN");
+			return false;
+		}
+	}
+		
+	public boolean withdraw(String amount) {
+		try {
+			send.writeUTF("withdraw");
+			send.writeUTF(amount);
+			System.out.println(sock.isConnected() + " => CONNECTION STATUS");
+			received = new DataInputStream(sock.getInputStream());
+			return received.readBoolean();
+		} catch (IOException e) {
+			System.out.println("UNABLE TO GET MONEY BROKE NIGGA");
+			e.printStackTrace();
+			return false;
 		}
 	}
 	
