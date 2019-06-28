@@ -1,6 +1,8 @@
 package Systemfiles;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 
 import com.fazecast.jSerialComm.*;
 
@@ -8,6 +10,10 @@ public class Serial {
 	private static String data;
 	private static String serialData;
 	private static SerialPort comPort;
+	private static PrintWriter output;
+	Serial(){
+		listenSerial();
+	}
 
 	public static void listenSerial() {
 		 comPort = SerialPort.getCommPort("COM3");
@@ -17,6 +23,7 @@ public class Serial {
 		
 		//open the port
 		comPort.openPort();
+		output = new PrintWriter(comPort.getOutputStream());
 		
 		//create a listener and start listening
 		comPort.addDataListener(new SerialPortDataListener() {
@@ -47,10 +54,9 @@ public class Serial {
 
 	public void write(String stuff) {
 		try {
-			comPort.getOutputStream().write(stuff.getBytes());
-			comPort.getOutputStream().flush();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			output.print(stuff);
+			output.flush();
+		} catch (NullPointerException e) {
 			e.printStackTrace();
 		}
 	}

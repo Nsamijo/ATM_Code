@@ -2,6 +2,7 @@ package Systemfiles;
 
 import java.awt.Color;
 import java.awt.Toolkit;
+import java.text.SimpleDateFormat;
 import java.awt.Frame;
 import java.awt.Point;
 import java.awt.Dimension;
@@ -65,15 +66,12 @@ public class ATM {
 		this.bank = bank;
 		as = new ATMScreen();
 		this.textWelcome();
-		this.setDisplayText();
-		this.createFrame();
+		//this.createFrame();
 		this.setDisplayText();
 		serial = new Serial();
-
-		while (true) {
+		while(true) {
 			this.doTransaction();
 		}
-
 	}
 
 	public void createFrame() {
@@ -299,6 +297,19 @@ public class ATM {
 			}
 		}
 		return null;
+	}
+	
+	
+	void sendData(String b10, String b50, String iban, String amount) {
+		Date today = new Date();
+		SimpleDateFormat date = new SimpleDateFormat("dd/mm/yyyy");
+		SimpleDateFormat time = new SimpleDateFormat("HHmm");
+		String datum = date.format(today);
+		String tijd = time.format(today);
+		String card = iban.substring(iban.length() - 4);
+		String send = b10;
+		send += b50 + "-"+ card + "-" + datum + "-" + tijd + "-" + amount;
+		serial.write(send);
 	}
 
 	void ownAmount() {
