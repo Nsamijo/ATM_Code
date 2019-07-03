@@ -13,10 +13,16 @@ public class Bank {
 	private DataOutputStream send;
 
 	public Bank()	{
-		this.connect();
+		try{
+			this.connect();
+			received = new DataInputStream(sock.getInputStream());
+			send = new DataOutputStream(sock.getOutputStream());
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
-	public void blackList(String iban) {
+	public void blackList() {
 		try {
 			send.writeUTF("blockCard");
 		} catch (IOException e) {
@@ -27,10 +33,6 @@ public class Bank {
 	public void connect() {
 		try {
 			sock = new Socket("145.24.222.106", 8080);
-			while(!sock.isConnected()) {
-			received = new DataInputStream(sock.getInputStream());
-			send = new DataOutputStream(sock.getOutputStream());
-			}
 			System.out.println("CONNECTION SUCCESVOL! READY TO SEND AND RECEIVE DATA!");
 		} catch (UnknownHostException e) {
 			System.out.println("HOST COULD NOT BE RESOLVED! PLEASE TRY AGAIN!");
@@ -82,9 +84,9 @@ public class Bank {
 			send.writeUTF(iban);
 			return received.readBoolean();
 		} catch (IOException e) {
-			System.out.println("STREAM ERROR! PLEASE TRU AGAIN");
-			return false;
+			System.out.println("STREAM ERROR! PLEASE TRY AGAIN");
 		}
+		return false;
 	}
 		
 	public boolean withdraw(String amount) {

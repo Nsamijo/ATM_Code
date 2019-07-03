@@ -10,10 +10,11 @@ public class Serial {
 	private static SerialPort comPort;
 	private static PrintWriter output;
 	
-	Serial()
-	{
+	Serial(){
 		listenSerial();
 	}
+	
+				
 	public static void listenSerial() {
 		 comPort = SerialPort.getCommPort("COM3");
 		
@@ -22,7 +23,7 @@ public class Serial {
 		
 		//open the port
 		comPort.openPort();
-		output = new PrintWriter(comPort.getOutputStream());
+		//output = new PrintWriter(comPort.getOutputStream());
 		
 		//create a listener and start listening
 		comPort.addDataListener(new SerialPortDataListener() {

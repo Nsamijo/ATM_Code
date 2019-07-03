@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat;
 import java.awt.Frame;
 import java.awt.Point;
 import java.awt.Dimension;
-import java.util.ArrayList;
 import java.util.Date;
 
 /**
@@ -66,12 +65,11 @@ public class ATM {
 		this.bank = bank;
 		as = new ATMScreen();
 		this.textWelcome();
-		//this.createFrame();
+		this.createFrame();
 		this.setDisplayText();
 		serial = new Serial();
 		while(true) {
-			sendData("X", "X", "SU38MYBK214506", "300");
-			Thread.sleep(2000);
+			this.doTransaction();
 		}
 	}
 
@@ -91,11 +89,6 @@ public class ATM {
 		as.clear();
 		as.add(welcome);
 		as.add(welcome2);
-		ReceiptPrinter rP = new ReceiptPrinter("receipt-printer");
-		Date now = new Date();
-		rP.giveOutput("Taken at " + now);
-		rP.giveOutput("Amount withdrawn equals: " + taken);
-		return;
 	}
 
 	// hierbij worden de labels toegevoegd aan de container zodat er text kan worden
@@ -269,17 +262,25 @@ public class ATM {
 		welcome2.giveOutput(" ");
 	}
 
-	public String serialData() {
+	String getCard() {
 		String get = serial.getData();
 		String read = "";
 		if (get != null && get != "") {
-			if(get.contains("$$")) {
-				read += get.charAt(2);
-				System.out.println(read);
-				return read;
-			}else if(get.contains("~~")) {
+			if(get.contains("~~")) {
 				read = get.substring(2, 16);
 				System.out.println(read);
+				return read;
+			}
+		}
+		return null;
+	}
+	
+	String getPin() {
+		String get = serial.getData();
+		String read = "";
+		if(get != null && get != "") {
+			if(get.contains("~~")) {
+				read += get.charAt(2);
 				return read;
 			}
 		}
@@ -305,7 +306,6 @@ public class ATM {
 
 	public void doTransaction() throws InterruptedException {
 		System.out.println("This is just a test");
-		Serial.listenSerial();
 		this.welcomeScreen();
 		this.redirected();
 
@@ -315,9 +315,8 @@ public class ATM {
 		String sessionCard = null;
 		String account = "";
 		while (sessionClient == false) {
-			card = this.serialData();
-			if (card != null && card.length() > 2) {
-				account = card.replace(" ", "");
+			card = this.getCard();
+			if (card != null) {
 				// System.out.println("/" + account + "/");
 				sessionClient = bank.getIban(account);
 
@@ -350,8 +349,8 @@ public class ATM {
 			this.addScreenPad();
 			tempPin = "";
 			while (userPin != tempPinLength) {
-				pin = this.serialData();
-				if (pin != null && !pin.equals(" ") && !pin.equals("P") && !pin.equals(":")) {
+				pin = this.getPin();
+				if (pin != null) {
 					
 					if(pin.equals("*")) {
 						System.out.println("I AM HERE!!");
@@ -419,7 +418,7 @@ public class ATM {
 		}
 
 		if (attempts == 3) {
-			bank.blackList(sessionCard);
+			bank.blackList();
 			this.blocked();
 			sessionCard = null;
 			sessionClient = false;
@@ -437,7 +436,7 @@ public class ATM {
 			as.clear();
 			this.menu();
 			while (action == null) {
-				action = this.serialData();
+				action = this.getPin();
 			}
 
 			if (action != null) {
@@ -451,7 +450,7 @@ public class ATM {
 				} else if (action.equals("B")) {
 					this.withdraw();
 					while (choice == null) {
-						choice = this.serialData();
+						choice = this.getPin();
 						if (choice != null) {
 							if (choice.equals("1")) {
 								choice = "20";
@@ -483,7 +482,7 @@ public class ATM {
 								this.ownAmount();
 								String get = null;
 								while (get != "#") {
-									get = serialData();
+									get = this.getPin();
 									if (get != null) {
 										if (!get.equals("*") && !get.equals("#") && !get.equals("A") && !get.equals("B")
 												&& !get.equals("C") && !get.equals("D")) {
@@ -586,7 +585,7 @@ public class ATM {
 					while(!bill) {
 						while(answer == null) {
 							String check = null;
-							check = this.serialData();
+							check = this.getPin();
 							if(check != null) {
 								answer = check;
 							}
@@ -608,16 +607,13 @@ public class ATM {
 					answer = null;
 					while (answer == null) {
 						String receipt = null;
-						receipt = this.serialData();
+						receipt = this.getPin();
 						if (receipt != null) {
 							answer = receipt;
 						}
 					}
 
 					if (answer == "A") {
-						String last = sessionCard.substring(0, 10);
-						last += "XXXX";
-						this.serial.write(last);
 						this.createReceipt(choice);
 						int i = 0;
 						while(i != 5) {
