@@ -1,7 +1,6 @@
 package Systemfiles;
 
 import java.io.PrintWriter;
-
 import com.fazecast.jSerialComm.*;
 
 public class Serial {
@@ -23,7 +22,7 @@ public class Serial {
 		
 		//open the port
 		comPort.openPort();
-		//output = new PrintWriter(comPort.getOutputStream());
+		output = new PrintWriter(comPort.getOutputStream());
 		
 		//create a listener and start listening
 		comPort.addDataListener(new SerialPortDataListener() {

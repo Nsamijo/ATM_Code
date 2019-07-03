@@ -15,7 +15,7 @@ import java.util.Date;
 public class ATM {
 	// alle fields worden hier gedefined
 	ATMScreen as;
-	Bank bank;
+	private Bank bank;
 	boolean check = false;
 	boolean wrong = false;
 	boolean sessionClient = false;
@@ -60,16 +60,20 @@ public class ATM {
 	ScreenButton no;
 	Serial serial;
 
-	public ATM(Bank bank) throws InterruptedException {
+	public ATM(){
 		super();
-		this.bank = bank;
+		bank = new Bank();
 		as = new ATMScreen();
 		this.textWelcome();
 		this.createFrame();
 		this.setDisplayText();
 		serial = new Serial();
 		while(true) {
-			this.doTransaction();
+			try {
+				this.doTransaction();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -278,8 +282,8 @@ public class ATM {
 	String getPin() {
 		String get = serial.getData();
 		String read = "";
-		if(get != null && get != "") {
-			if(get.contains("~~")) {
+		if(get != null) {
+			if(get.contains("$$")) {
 				read += get.charAt(2);
 				return read;
 			}
@@ -311,32 +315,35 @@ public class ATM {
 
 		// this.bank.connect();
 		// this.bank.disconnect();
-		String card = "";
+		String card = null;
 		String sessionCard = null;
-		String account = "";
 		while (sessionClient == false) {
-			card = this.getCard();
+			while(card == null) {
+				String cardTemp = this.getCard();
+				if (cardTemp != null) {
+					card = cardTemp;
+				}
+			}
+			System.out.println(card);
 			if (card != null) {
-				// System.out.println("/" + account + "/");
-				sessionClient = bank.getIban(account);
+				sessionClient = bank.getIban(card);
 
 				if (!sessionClient) {
 					this.errorScreen();
 					Thread.sleep(1000);
 					this.redirected();
 				}else {
-					sessionCard = account;
+					sessionCard = card;
 					break;
 				}
 				
-				if(bank.checkIbanBlocked(account)) {
+				if(bank.checkIbanBlocked()) {
 					this.message("The account is blocked", "Please contact the bank!");
 					Thread.sleep(500);
 					sessionClient = false;
 					return;
 				}
 				
-				account = null;
 				card = null;
 			}
 		}
@@ -349,7 +356,9 @@ public class ATM {
 			this.addScreenPad();
 			tempPin = "";
 			while (userPin != tempPinLength) {
-				pin = this.getPin();
+				while(pin == null) {
+					pin = this.getPin();
+				}
 				if (pin != null) {
 					
 					if(pin.equals("*")) {
@@ -454,7 +463,7 @@ public class ATM {
 						if (choice != null) {
 							if (choice.equals("1")) {
 								choice = "20";
-								check = bank.withdraw(choice);
+								bank.withdraw(choice);
 								wrong = !check;
 							} else if (choice.equals("2")) {
 								choice = "50";

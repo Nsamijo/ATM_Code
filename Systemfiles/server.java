@@ -6,13 +6,13 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class Bank {
+public class server {
 
 	private Socket sock;
 	private DataInputStream received;
 	private DataOutputStream send;
 
-	public Bank()	{
+	public server()	{
 		try{
 			this.connect();
 			received = new DataInputStream(sock.getInputStream());
@@ -55,6 +55,7 @@ public class Bank {
 	
 	public boolean checkPin(String pin) {
 		try {
+			this.connect();
 			send.writeUTF("pin");
 			send.writeInt(Integer.valueOf(pin));
 			return received.readBoolean();
@@ -69,6 +70,7 @@ public class Bank {
 			send.writeUTF("balance");
 			send.writeUTF(iban);
 			send.writeInt(Integer.valueOf(pin));
+			received = new DataInputStream(sock.getInputStream());
 			return received.readInt();
 		} catch (IOException e) {
 			System.out.println("UNABLE TO GET BALANCE");
@@ -79,7 +81,9 @@ public class Bank {
 	public boolean getIban(String iban) {
 		try {
 			send.writeUTF("iban");
-			send.writeUTF(iban);
+			for(int i = 0; i < 2; i ++) {
+				send.writeUTF(iban);
+			}
 			return received.readBoolean();
 		} catch (IOException e) {
 			System.out.println("STREAM ERROR! PLEASE TRY AGAIN");
@@ -91,6 +95,8 @@ public class Bank {
 		try {
 			send.writeUTF("withdraw");
 			send.writeUTF(amount);
+			System.out.println(sock.isConnected() + " => CONNECTION STATUS");
+			received = new DataInputStream(sock.getInputStream());
 			return received.readBoolean();
 		} catch (IOException e) {
 			System.out.println("UNABLE TO GET MONEY BROKE NIGGA");
