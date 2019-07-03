@@ -70,7 +70,8 @@ public class ATM {
 		this.setDisplayText();
 		serial = new Serial();
 		while(true) {
-			this.doTransaction();
+			sendData("X", "X", "SU38MYBK214506", "300");
+			Thread.sleep(2000);
 		}
 	}
 
@@ -272,33 +273,18 @@ public class ATM {
 		String get = serial.getData();
 		String read = "";
 		if (get != null && get != "") {
-			if (get.length() > 1) {
-				char first = get.charAt(0);
-				read += first;
-				//System.out.println(read);
+			if(get.contains("$$")) {
+				read += get.charAt(2);
+				System.out.println(read);
 				return read;
-			} else if (get.length() == 1) {
-				read += get;
-				//System.out.println(read);
+			}else if(get.contains("~~")) {
+				read = get.substring(2, 16);
+				System.out.println(read);
 				return read;
 			}
 		}
 		return null;
 	}
-
-	String card() {
-		String get = serial.getData();
-		String read = "";
-		if (get != null && get != "") {
-			if (get.length() > 10) {
-				read += get.substring(0, 14);
-				// System.out.println(read);
-				return "SU38MYBK214506";
-			}
-		}
-		return null;
-	}
-	
 	
 	void sendData(String b10, String b50, String iban, String amount) {
 		Date today = new Date();
@@ -329,8 +315,8 @@ public class ATM {
 		String sessionCard = null;
 		String account = "";
 		while (sessionClient == false) {
-			card = this.card();
-			if (card != null) {
+			card = this.serialData();
+			if (card != null && card.length() > 2) {
 				account = card.replace(" ", "");
 				// System.out.println("/" + account + "/");
 				sessionClient = bank.getIban(account);
@@ -633,6 +619,10 @@ public class ATM {
 						last += "XXXX";
 						this.serial.write(last);
 						this.createReceipt(choice);
+						int i = 0;
+						while(i != 5) {
+							sendData("X", "X", sessionCard, amount);
+						}
 						welcome.giveOutput("Now dispensing $ " + choice);
 						welcome2.giveOutput("Please take your card and your cash!");
 						Thread.sleep(2000);

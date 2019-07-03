@@ -1,7 +1,5 @@
 package Systemfiles;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 
 import com.fazecast.jSerialComm.*;
@@ -11,10 +9,11 @@ public class Serial {
 	private static String serialData;
 	private static SerialPort comPort;
 	private static PrintWriter output;
-	Serial(){
+	
+	Serial()
+	{
 		listenSerial();
 	}
-
 	public static void listenSerial() {
 		 comPort = SerialPort.getCommPort("COM3");
 		

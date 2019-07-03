@@ -24,19 +24,18 @@ public class Bank {
 		}
 	}
 	
-	public boolean connect() {
+	public void connect() {
 		try {
 			sock = new Socket("145.24.222.106", 8080);
-			System.out.println("CONNECTION SUCCESVOL! READY TO SEND AND RECEIVE DATA!");
+			while(!sock.isConnected()) {
 			received = new DataInputStream(sock.getInputStream());
 			send = new DataOutputStream(sock.getOutputStream());
-			return sock.isConnected();
+			}
+			System.out.println("CONNECTION SUCCESVOL! READY TO SEND AND RECEIVE DATA!");
 		} catch (UnknownHostException e) {
 			System.out.println("HOST COULD NOT BE RESOLVED! PLEASE TRY AGAIN!");
-			return false;
 		} catch (IOException e) {
 			System.out.println("AN UNEXPECTED ERROR HAPPENED! PLEASE TRY AGAIN");
-			return false;
 		}
 	}
 	
@@ -54,6 +53,7 @@ public class Bank {
 	
 	public boolean checkPin(String pin) {
 		try {
+			this.connect();
 			send.writeUTF("pin");
 			send.writeInt(Integer.valueOf(pin));
 			return received.readBoolean();
